@@ -67,6 +67,10 @@ class HalfBridge{
 	    cfg.counter_mode = MCPWM_UP_COUNTER;
 		ESP_ERROR_CHECK(mcpwm_init(unit, timer, &cfg));
 	}
+	
+	void dead_time(int dt_us){
+		ESP_ERROR_CHECK(mcpwm_deadtime_enable(unit, timer, MCPWM_BYPASS_FED, dt_us*10, dt_us*10));
+	}
 
 	// MCPWM_HAL_GENERATOR_MODE_FORCE_LOW, MCPWM_DUTY_MODE_0
 	void duty_mode(mcpwm_duty_type_t t){
@@ -112,6 +116,10 @@ class HalfBridge{
 		//ESP_ERROR_CHECK(mcpwm_set_signal_low(unit, timer, MCPWM_OPR_B));
 		digitalWrite(pin_b, LOW);
 	}
+	
+	void set_frequency(int freq){
+		ESP_ERROR_CHECK(mcpwm_set_frequency(unit, timer, freq));
+	}
 
 	void pulse(int usecs, int deadtime=30){
 		off_b();
@@ -137,9 +145,8 @@ void setup(){
 	strip.Show();
 	hb.setup(4, 5, 25000);
 	Serial.begin(9600);
-	hb.onoff_mode();
-	hb.off_a();
-	hb.on_b();
+	//hb.pwm_mode();
+	//hb.dead_time(30);
 	pinMode(LEFT, INPUT_PULLUP);
 	pinMode(STOP, INPUT_PULLUP);
 	pinMode(RIGHT, INPUT_PULLUP);
@@ -150,34 +157,62 @@ void setup(){
 
 void loop(){
 	int deadt=30;
+	static int freq = 25000;
+	bool changed = false;
+	static bool on = true;
 	switch(Left.feed(digitalRead(LEFT))){
 		case ButtonPressed:
-			hb.pulse(45);
-			Serial.write("Pulsed\r\n");
+			freq += 10;
+			changed = true;
+		break;
+		case ButtonPressing:
+			freq += 10;
+			changed = true;
 		break;
 		default:
 		break;
 	}
+	
 	switch(Stop.feed(digitalRead(STOP))){
 		case ButtonPressed:
-			hb.pulse(300);
-			Serial.write("Pulsed\r\n");
+			on = !on;
+			changed=true;
 		break;
 		default:
 		break;
 	}
+	
 	switch(Right.feed(digitalRead(RIGHT))){
 		case ButtonPressed:
-			hb.pulse(1000);
-			Serial.write("Pulsed\r\n");
+			freq -= 10;
+			changed = true;
+		break;
+		case ButtonPressing:
+			freq -= 10;
+			changed = true;
 		break;
 		default:
 		break;
 	}
+	
+	if(changed){
+		Serial.print("Changed\r\r");
+		if(on){
+			hb.set_frequency(freq);
+			hb.pwm_mode();
+		}
+		else{
+			hb.onoff_mode();
+			hb.off_a();
+			hb.on_b();
+		}
+	}
+	
+	/*
 	if (Serial.available() > 0) {
 		if(Serial.read() == 'p'){
 			hb.pulse(45);
 			Serial.write("Pulsed\r\n");
 		}
-	}
+	}*/
 }

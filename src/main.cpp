@@ -71,7 +71,7 @@ class HalfBridge{
 	}
 	
 	void dead_time(int dt_us){
-		ESP_ERROR_CHECK(mcpwm_deadtime_enable(unit, timer, MCPWM_BYPASS_FED, dt_us*10, dt_us*10));
+		ESP_ERROR_CHECK(mcpwm_deadtime_enable(unit, timer, MCPWM_ACTIVE_HIGH_COMPLIMENT_MODE, dt_us*10, dt_us*10));
 	}
 
 	// MCPWM_HAL_GENERATOR_MODE_FORCE_LOW, MCPWM_DUTY_MODE_0
@@ -150,7 +150,7 @@ void setup(){
 	hb.setup(4, 5, 25000);
 	Serial.begin(9600);
 	hb.pwm_mode();
-	//hb.dead_time(30);
+	hb.dead_time(5);
 	pinMode(LEFT, INPUT_PULLUP);
 	pinMode(STOP, INPUT_PULLUP);
 	pinMode(RIGHT, INPUT_PULLUP);

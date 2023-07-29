@@ -61,11 +61,13 @@ class HalfBridge{
 		this->pin_b = pin_b;
 		    mcpwm_config_t cfg;
 	    cfg.frequency = freq_hz;
-	    cfg.cmpr_a = 0;
-	    cfg.cmpr_b = 0;
-	    cfg.duty_mode = MCPWM_HAL_GENERATOR_MODE_FORCE_LOW;//MCPWM_DUTY_MODE_0;
+	    cfg.cmpr_a = 50;
+	    cfg.cmpr_b = 50;
+	    cfg.duty_mode = MCPWM_DUTY_MODE_0; //MCPWM_HAL_GENERATOR_MODE_FORCE_LOW;//MCPWM_DUTY_MODE_0;
 	    cfg.counter_mode = MCPWM_UP_COUNTER;
 		ESP_ERROR_CHECK(mcpwm_init(unit, timer, &cfg));
+		//pwm_mode();
+		ESP_ERROR_CHECK(mcpwm_set_duty(MCPWM_UNIT_0, MCPWM_TIMER_0, MCPWM_OPR_A, 50));
 	}
 	
 	void dead_time(int dt_us){
@@ -80,7 +82,9 @@ class HalfBridge{
 	
 	void pwm_mode(){
 		mcpwm_start(unit,timer);
-		duty_mode(MCPWM_DUTY_MODE_0);
+		//duty_mode(MCPWM_DUTY_MODE_0);
+		ESP_ERROR_CHECK(mcpwm_set_duty_type(unit, timer, MCPWM_OPR_A, MCPWM_DUTY_MODE_0));
+		ESP_ERROR_CHECK(mcpwm_set_duty_type(unit, timer, MCPWM_OPR_B, MCPWM_DUTY_MODE_1));
 	}
 	
 	void onoff_mode(){
@@ -145,7 +149,7 @@ void setup(){
 	strip.Show();
 	hb.setup(4, 5, 25000);
 	Serial.begin(9600);
-	//hb.pwm_mode();
+	hb.pwm_mode();
 	//hb.dead_time(30);
 	pinMode(LEFT, INPUT_PULLUP);
 	pinMode(STOP, INPUT_PULLUP);
@@ -198,13 +202,14 @@ void loop(){
 	if(changed){
 		Serial.print("Changed\r\r");
 		if(on){
-			hb.set_frequency(freq);
-			hb.pwm_mode();
+			/*hb.set_frequency(freq);
+			hb.pwm_mode();*/
 		}
 		else{
+			/*
 			hb.onoff_mode();
 			hb.off_a();
-			hb.on_b();
+			hb.on_b();*/
 		}
 	}
 	

@@ -84,7 +84,7 @@ class HalfBridge{
 		mcpwm_start(unit,timer);
 		//duty_mode(MCPWM_DUTY_MODE_0);
 		ESP_ERROR_CHECK(mcpwm_set_duty_type(unit, timer, MCPWM_OPR_A, MCPWM_DUTY_MODE_0));
-		ESP_ERROR_CHECK(mcpwm_set_duty_type(unit, timer, MCPWM_OPR_B, MCPWM_DUTY_MODE_1));
+		ESP_ERROR_CHECK(mcpwm_set_duty_type(unit, timer, MCPWM_OPR_B, MCPWM_DUTY_MODE_0));
 	}
 	
 	void onoff_mode(){
@@ -93,13 +93,12 @@ class HalfBridge{
 		pinMode(pin_b, OUTPUT);
 	}
 
-	void set_a(float f){
+	void duty(float f){
+		f = 1-f;
 		ESP_ERROR_CHECK(mcpwm_set_duty(unit, timer, MCPWM_OPR_A, f*100));
-	}
-	
-	void set_b(float f){
 		ESP_ERROR_CHECK(mcpwm_set_duty(unit, timer, MCPWM_OPR_B, f*100));
 	}
+	
 
 	void on_a(){
 		//ESP_ERROR_CHECK(mcpwm_set_signal_high(unit, timer, MCPWM_OPR_A));
@@ -150,7 +149,7 @@ void setup(){
 	hb.setup(4, 5, 25000);
 	Serial.begin(9600);
 	hb.pwm_mode();
-	hb.dead_time(5);
+	hb.dead_time(10);
 	pinMode(LEFT, INPUT_PULLUP);
 	pinMode(STOP, INPUT_PULLUP);
 	pinMode(RIGHT, INPUT_PULLUP);
@@ -164,7 +163,9 @@ void loop(){
 	static int freq = 25000;
 	bool changed = false;
 	static bool on = true;
-	switch(Left.feed(digitalRead(LEFT))){
+	static float val=0;
+	static float divider=1;
+	switch(Left.feed(!digitalRead(LEFT))){
 		case ButtonPressed:
 			freq += 10;
 			changed = true;
@@ -177,7 +178,7 @@ void loop(){
 		break;
 	}
 	
-	switch(Stop.feed(digitalRead(STOP))){
+	switch(Stop.feed(!digitalRead(STOP))){
 		case ButtonPressed:
 			on = !on;
 			changed=true;
@@ -186,7 +187,7 @@ void loop(){
 		break;
 	}
 	
-	switch(Right.feed(digitalRead(RIGHT))){
+	switch(Right.feed(!digitalRead(RIGHT))){
 		case ButtonPressed:
 			freq -= 10;
 			changed = true;
@@ -200,24 +201,54 @@ void loop(){
 	}
 	
 	if(changed){
-		Serial.print("Changed\r\r");
+		Serial.print(freq);
+		Serial.print(" Changed\r\r");
 		if(on){
-			/*hb.set_frequency(freq);
-			hb.pwm_mode();*/
+			hb.set_frequency(freq);
+			//hb.pwm_mode();
 		}
 		else{
-			/*
-			hb.onoff_mode();
-			hb.off_a();
-			hb.on_b();*/
+			
+			//hb.onoff_mode();
+			//hb.off_a();
+			//hb.on_b();
 		}
 	}
 	
-	/*
+	bool done=false;
 	if (Serial.available() > 0) {
-		if(Serial.read() == 'p'){
-			hb.pulse(45);
-			Serial.write("Pulsed\r\n");
+		char c = Serial.read();
+		if(c>='0' && c<='9'){
+			val *= 10;
+			val += (int)(c-'0');
+			divider *= 10;
 		}
-	}*/
+		else if(c == '.'){
+			divider=1;
+		}
+		else if(c == 'f'){
+			Serial.print("Set freq to ");
+			Serial.print(val/divider);
+			Serial.print("\r\n");
+			hb.set_frequency((int)(val/divider));
+			done=true;
+		}
+		else if(c == 'd'){
+			hb.duty(val/divider);
+			done=true;
+		}
+		else if(c == 'o'){
+			hb.dead_time(val/divider);
+			done=true;
+		}
+		else{
+			done=true;
+		}
+		Serial.print(val/divider);
+		Serial.print("\r\n");
+		if(done){
+			val=0;
+			divider=0;
+		}
+	}
 }
